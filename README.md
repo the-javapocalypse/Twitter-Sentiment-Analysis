@@ -1,9 +1,18 @@
 # Twitter-Sentiment-Analysis
-Analyze how People are Reacting to any Certain Event by Analyzing their Tweets. 
+### Complete text and video based [tutorial link](http://www.letscodepro.com/Twitter-Sentiment-Analysis/)
 
-Basically the script does the following
--To extract the tweets related to any desired Hash Tag/Keyword
--Analyze the words in each tweet to find out whether the tweet is positive or negative (Happy or Sad) using Natural Language Processing
--Find the results for bulk of tweets to get the sentiments of majority.
+# Overview
+This script can tell you the sentiments of people regarding to any events happening in the world by analyzing tweets related to that event. It will search for tweets about any topic and analyze each tweet to see how positive or negative it's emotion is. 
 
-You can get more detailed tutorial at http://www.letscodepro.com/Twitter-Sentiment-Analysis
+![alt text](http://www.letscodepro.com/wp-content/uploads/2017/09/TwitterSentimentAnalysis.png)
+
+
+# Dependencies
+* Python 3.x
+* tweepy
+* textblob
+* matplotlib
+
+use [pip](https://pypi.python.org/pypi/pip) to install any missing dependecies. 
+
+
