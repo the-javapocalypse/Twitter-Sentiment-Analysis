@@ -43,9 +43,5 @@ Once you have created an app on twitter and installed all the dependencies by ru
 
 ## Authors
 
-Muhammad Ali Zia
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/the-javapocalypse/Twitter-Sentiment-Analysis/blob/master/License.txt) file for details
+Naveen
 
