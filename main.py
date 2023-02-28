@@ -1,6 +1,12 @@
-import sys,tweepy,csv,re
+import tweepy
+import csv
+import re
+from collections import Counter
 from textblob import TextBlob
 import matplotlib.pyplot as plt
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class SentimentAnalysis:
@@ -10,13 +16,17 @@ class SentimentAnalysis:
         self.tweetText = []
 
     def DownloadData(self):
+        
+        # Importing keys from .env file
+        CONSUMER_KEY = os.getenv('CONSUMER_KEY')
+        CONSUMER_SECRET = os.getenv('CONSUMER_SECRET')
+        ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
+        ACCESS_TOKEN_SECRET = os.getenv('ACCESS_TOKEN_SECRET')
+
+
         # authenticating
-        consumerKey = 'your key here'
-        consumerSecret = 'your key here'
-        accessToken = 'your key here'
-        accessTokenSecret = 'your key here'
-        auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
-        auth.set_access_token(accessToken, accessTokenSecret)
+        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
         api = tweepy.API(auth)
 
         # input for term to be searched and how many tweets to search
@@ -24,77 +34,55 @@ class SentimentAnalysis:
         NoOfTerms = int(input("Enter how many tweets to search: "))
 
         # searching for tweets
-        self.tweets = tweepy.Cursor(api.search, q=searchTerm, lang = "en").items(NoOfTerms)
+        self.tweets = tweepy.Cursor(api.search, q=searchTerm, lang="en").items(NoOfTerms)
 
         # Open/create a file to append data to
-        csvFile = open('result.csv', 'a')
+        with open('result.csv', 'a') as csvFile:
+            # Use csv writer
+            csvWriter = csv.writer(csvFile)
 
-        # Use csv writer
-        csvWriter = csv.writer(csvFile)
+            # iterating through tweets fetched
+            for tweet in self.tweets:
+                #Append to temp so that we can store in csv later. I use encode UTF-8
+                self.tweetText.append(self.cleanTweet(tweet.text).encode('utf-8'))
+                # print (tweet.text.translate(non_bmp_map))    #print tweet's text
+                analysis = TextBlob(tweet.text)
+                # print(analysis.sentiment)  # print tweet's polarity
+                self.sentiments.append(analysis.sentiment.polarity)
 
+            # Write to csv
+            csvWriter.writerow(self.tweetText)
 
-        # creating some variables to store info
-        polarity = 0
-        positive = 0
-        wpositive = 0
-        spositive = 0
-        negative = 0
-        wnegative = 0
-        snegative = 0
-        neutral = 0
-
-
-        # iterating through tweets fetched
-        for tweet in self.tweets:
-            #Append to temp so that we can store in csv later. I use encode UTF-8
-            self.tweetText.append(self.cleanTweet(tweet.text).encode('utf-8'))
-            # print (tweet.text.translate(non_bmp_map))    #print tweet's text
-            analysis = TextBlob(tweet.text)
-            # print(analysis.sentiment)  # print tweet's polarity
-            polarity += analysis.sentiment.polarity  # adding up polarities to find the average later
-
-            if (analysis.sentiment.polarity == 0):  # adding reaction of how people are reacting to find average later
-                neutral += 1
-            elif (analysis.sentiment.polarity > 0 and analysis.sentiment.polarity <= 0.3):
-                wpositive += 1
-            elif (analysis.sentiment.polarity > 0.3 and analysis.sentiment.polarity <= 0.6):
-                positive += 1
-            elif (analysis.sentiment.polarity > 0.6 and analysis.sentiment.polarity <= 1):
-                spositive += 1
-            elif (analysis.sentiment.polarity > -0.3 and analysis.sentiment.polarity <= 0):
-                wnegative += 1
-            elif (analysis.sentiment.polarity > -0.6 and analysis.sentiment.polarity <= -0.3):
-                negative += 1
-            elif (analysis.sentiment.polarity > -1 and analysis.sentiment.polarity <= -0.6):
-                snegative += 1
-
-
-        # Write to csv and close csv file
-        csvWriter.writerow(self.tweetText)
-        csvFile.close()
-
-        # finding average of how people are reacting
-        positive = self.percentage(positive, NoOfTerms)
-        wpositive = self.percentage(wpositive, NoOfTerms)
-        spositive = self.percentage(spositive, NoOfTerms)
-        negative = self.percentage(negative, NoOfTerms)
-        wnegative = self.percentage(wnegative, NoOfTerms)
-        snegative = self.percentage(snegative, NoOfTerms)
-        neutral = self.percentage(neutral, NoOfTerms)
-
+        # calculate sentiment percentages
+        sentiment_counts = Counter(
+            'strongly positive' if s > 0.6 and s <= 1 else
+            'strongly negative' if s >= -1 and s <= -0.6 else
+            'positive' if s > 0.3 and s <= 0.6 else
+            'weakly positive' if 0.3 >= s > 0 else
+            'neutral' if s==0 else
+            'weakly negative' if 1 >= s > -0.3 else
+            'negative' if 0.6 >= s > -1 else 'other'
+            for s in self.sentiments)
+        positive = self.percentage(sentiment_counts['positive'], NoOfTerms)
+        wpositive = self.percentage(sentiment_counts['weakly positive'], NoOfTerms)
+        negative = self.percentage(sentiment_counts['negative'], NoOfTerms)
+        wnegative = self.percentage(sentiment_counts['weakly negative'], NoOfTerms)
+        spositive = self.percentage(sentiment_counts['strongly positive'], NoOfTerms)
+        snegative = self.percentage(sentiment_counts['strongly negative'], NoOfTerms)
+        neutral = self.percentage(sentiment_counts['neutral'], NoOfTerms)
         # finding average reaction
-        polarity = polarity / NoOfTerms
+        polarity = sum(self.sentiments) / NoOfTerms
 
         # printing out data
-        print("How people are reacting on " + searchTerm + " by analyzing " + str(NoOfTerms) + " tweets.")
+        print(f"How people are reacting on {searchTerm} by analyzing {NoOfTerms} tweets.")
         print()
         print("General Report: ")
 
-        if (polarity == 0):
+        if polarity == 0:
             print("Neutral")
-        elif (polarity > 0 and polarity <= 0.3):
+        elif polarity > 0 and polarity <= 0.3:
             print("Weakly Positive")
-        elif (polarity > 0.3 and polarity <= 0.6):
+        elif polarity > 0.3 and polarity <= 0.6:
             print("Positive")
         elif (polarity > 0.6 and polarity <= 1):
             print("Strongly Positive")
